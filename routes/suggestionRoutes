@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getSuggestions } = require('../controllers/suggestionController');
-const { protect } = require('../middleware/authMiddleware_login');
+const protect = require('../middleware/authMiddleware_login');
 
 router.get('/', protect, getSuggestions);
 
-module.exports = router;s
+module.exports = router;

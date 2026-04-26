@@ -11,11 +11,18 @@ app.use('/api/auth', authRoutes);
 
 const recipeRoutes = require('./routes/recipeRoutes');
 app.use('/api/recipes', recipeRoutes);
+
 const ingredientRoutes = require('./routes/ingredientRoutes');
 app.use('/api/ingredients', ingredientRoutes);
 
 const favoriteRoutes = require('./routes/favoriteRoutes');
 app.use('/api/favorites', favoriteRoutes);
+
+const suggestionRoutes = require('./routes/suggestionRoutes');
+app.use('/api/suggestions', suggestionRoutes);
+
+const ratingRoutes = require('./routes/ratingRoutes');
+app.use('/api/ratings', ratingRoutes);
 
 // Connect to MongoDB then start server
 mongoose.connect(process.env.MONGO_URI)
@@ -26,5 +33,3 @@ mongoose.connect(process.env.MONGO_URI)
     });
   })
   .catch(err => console.error('DB connection error:', err));
-  const suggestionRoutes = require('./routes/suggestionRoutes');
-app.use('/api/suggestions', suggestionRoutes);
