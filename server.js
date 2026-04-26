@@ -21,7 +21,7 @@ app.use('/api/favorites', favoriteRoutes);
 const suggestionRoutes = require('./routes/suggestionRoutes');
 app.use('/api/suggestions', suggestionRoutes);
 
-const ratingRoutes = require('./routes/ratingRoutes');
+const ratingRoutes = require('./routes/ratingRoutes.js');
 app.use('/api/ratings', ratingRoutes);
 
 // Connect to MongoDB then start server
