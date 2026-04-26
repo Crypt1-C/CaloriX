@@ -11,6 +11,8 @@ app.use('/api/auth', authRoutes);
 
 const recipeRoutes = require('./routes/recipeRoutes');
 app.use('/api/recipes', recipeRoutes);
+const ingredientRoutes = require('./routes/ingredientRoutes');
+app.use('/api/ingredients', ingredientRoutes);
 
 // Connect to MongoDB then start server
 mongoose.connect(process.env.MONGO_URI)
