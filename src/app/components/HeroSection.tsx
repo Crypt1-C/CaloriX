@@ -2,7 +2,21 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { Clock, Flame, Users, Play } from "lucide-react";
 import { useRef } from "react";
 
-export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () => void; onWatchVideo?: () => void }) {
+export function HeroSection({
+  recipe,
+  onGetRecipe,
+  onWatchVideo,
+}: {
+  recipe: {
+    title: string;
+    image: string;
+    calories: number;
+    time: number;
+    servings?: number;
+  };
+  onGetRecipe?: () => void;
+  onWatchVideo?: () => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -22,7 +36,7 @@ export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () =>
         className="absolute inset-0"
       >
         <img
-          src="https://images.unsplash.com/photo-1774921677519-e2aeb343e9b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb3VybWV0JTIwZm9vZCUyMGRpc2glMjBwbGF0ZWQlMjByZXN0YXVyYW50fGVufDF8fHx8MTc3NjA5MTY3NHww&ixlib=rb-4.1.0&q=80&w=1080"
+          src={recipe.image}
           alt="Gourmet dish"
           className="w-full h-full object-cover"
         />
@@ -50,8 +64,8 @@ export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () =>
             className="text-6xl md:text-7xl text-[var(--beige)] mb-6 leading-tight"
             style={{ fontWeight: 700 }}
           >
-            Truffle Mushroom <br />
-            <span className="text-[var(--orange)]">Risotto</span>
+            {recipe.title.split(" ").slice(0, 2).join(" ")} <br />
+            <span className="text-[var(--orange)]">{recipe.title.split(" ").slice(2).join(" ")}</span>
           </motion.h1>
 
           <motion.p
@@ -60,7 +74,7 @@ export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () =>
             transition={{ delay: 0.7, duration: 0.8 }}
             className="text-xl text-[var(--muted-foreground)] mb-8 max-w-xl"
           >
-            Creamy Italian rice with wild mushrooms, parmesan, and aromatic truffle oil
+            Discover today’s featured recipe — fresh inspiration from the community.
           </motion.p>
 
           <motion.div
@@ -75,7 +89,7 @@ export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () =>
               </div>
               <div>
                 <div className="text-2xl text-[var(--beige)]" style={{ fontWeight: 600 }}>
-                  380
+                  {recipe.calories}
                 </div>
                 <div className="text-sm text-[var(--muted-foreground)]">calories</div>
               </div>
@@ -87,7 +101,7 @@ export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () =>
               </div>
               <div>
                 <div className="text-2xl text-[var(--beige)]" style={{ fontWeight: 600 }}>
-                  35
+                  {recipe.time}
                 </div>
                 <div className="text-sm text-[var(--muted-foreground)]">minutes</div>
               </div>
@@ -99,7 +113,7 @@ export function HeroSection({ onGetRecipe, onWatchVideo }: { onGetRecipe?: () =>
               </div>
               <div>
                 <div className="text-2xl text-[var(--beige)]" style={{ fontWeight: 600 }}>
-                  4
+                  {recipe.servings ?? 2}
                 </div>
                 <div className="text-sm text-[var(--muted-foreground)]">servings</div>
               </div>

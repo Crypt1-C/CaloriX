@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
 import { Clock, Flame, Star, Heart } from "lucide-react";
-import { useState } from "react";
 
 interface RecipeCardProps {
+  id?: string;
   title: string;
   image: string;
   calories: number;
@@ -10,11 +10,23 @@ interface RecipeCardProps {
   rating: number;
   delay?: number;
   onClick?: () => void;
+  isFavorited?: boolean;
+  onToggleFavorite?: () => void;
+  disableFavorite?: boolean;
 }
 
-export function RecipeCard({ title, image, calories, time, rating, delay = 0, onClick }: RecipeCardProps) {
-  const [isFavorited, setIsFavorited] = useState(false);
-
+export function RecipeCard({
+  title,
+  image,
+  calories,
+  time,
+  rating,
+  delay = 0,
+  onClick,
+  isFavorited = false,
+  onToggleFavorite,
+  disableFavorite = false,
+}: RecipeCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -41,9 +53,12 @@ export function RecipeCard({ title, image, calories, time, rating, delay = 0, on
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation();
-              setIsFavorited(!isFavorited);
+              if (!disableFavorite) onToggleFavorite?.();
             }}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[rgba(0,0,0,0.5)] backdrop-blur-md flex items-center justify-center"
+            disabled={disableFavorite}
+            className={`absolute top-4 right-4 w-10 h-10 rounded-full bg-[rgba(0,0,0,0.5)] backdrop-blur-md flex items-center justify-center ${
+              disableFavorite ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <Heart
               className={`w-5 h-5 transition-colors ${

@@ -1,3 +1,4 @@
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -32,7 +33,7 @@ export function WelcomeBanner({ show, userName = "Chef" }: { show: boolean; user
               </div>
               <div>
                 <h3 className="text-xl text-[var(--beige)] mb-1" style={{ fontWeight: 600 }}>
-                  Welcome back, {userName}!
+                  Welcome Back, Chef {userName} !
                 </h3>
                 <p className="text-[var(--muted-foreground)]">
                   Your personalized kitchen awaits

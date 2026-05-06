@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { api, setAuthToken } from "../api/http";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,6 +11,11 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -22,10 +28,30 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     };
   }, [isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess?.();
-    onClose();
+    setError(null);
+    setSubmitting(true);
+    try {
+      if (isSignUp) {
+        await api<{ message: string }>("/api/auth/register", {
+          method: "POST",
+          body: { name, email, password },
+        });
+        // After signup, log in automatically
+      }
+      const res = await api<{ token: string; message: string }>("/api/auth/login", {
+        method: "POST",
+        body: { email, password },
+      });
+      if (res?.token) setAuthToken(res.token);
+      onSuccess?.();
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || "Authentication failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -67,6 +93,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                     <label className="block text-sm text-[var(--beige)] mb-2">Name</label>
                     <input
                       type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       className="w-full px-4 py-3 bg-[rgba(26,58,46,0.3)] border border-[var(--glass-border)] rounded-xl text-[var(--beige)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-[var(--orange)] transition-all"
                       placeholder="Enter your name"
                     />
@@ -77,6 +105,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   <label className="block text-sm text-[var(--beige)] mb-2">Email</label>
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 bg-[rgba(26,58,46,0.3)] border border-[var(--glass-border)] rounded-xl text-[var(--beige)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-[var(--orange)] transition-all"
                     placeholder="Enter your email"
                   />
@@ -86,25 +116,37 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   <label className="block text-sm text-[var(--beige)] mb-2">Password</label>
                   <input
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-[rgba(26,58,46,0.3)] border border-[var(--glass-border)] rounded-xl text-[var(--beige)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-[var(--orange)] transition-all"
                     placeholder="Enter your password"
                   />
                 </div>
 
+                {error && (
+                  <div className="text-sm text-[var(--orange)]">
+                    {error}
+                  </div>
+                )}
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
+                  disabled={submitting}
                   className="w-full py-4 bg-[var(--orange)] text-[var(--black)] rounded-xl hover:shadow-xl hover:shadow-[rgba(255,107,53,0.3)] transition-all"
                   style={{ fontWeight: 600 }}
                 >
-                  {isSignUp ? 'Create Account' : 'Sign In'}
+                  {submitting ? 'Please wait…' : isSignUp ? 'Create Account' : 'Sign In'}
                 </motion.button>
               </form>
 
               <div className="mt-6 text-center">
                 <button
-                  onClick={() => setIsSignUp(!isSignUp)}
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setError(null);
+                  }}
                   className="text-[var(--muted-foreground)] hover:text-[var(--orange)] transition-colors"
                 >
                   {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}

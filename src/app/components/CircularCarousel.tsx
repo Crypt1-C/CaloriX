@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Star, Clock, Flame } from "lucide-react";
 import { useState } from "react";
 
 interface Recipe {
+  id?: string;
   title: string;
   image: string;
   calories: number;

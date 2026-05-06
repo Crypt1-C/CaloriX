@@ -1,11 +1,14 @@
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Clock, Flame, Users, Star, Minus, Plus, Play } from "lucide-react";
+import { X, Clock, Flame, Users, Star, Minus, Plus, Play, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
+import { api } from "../api/http";
 
 interface RecipeDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   recipe: {
+    id?: string;
     title: string;
     image: string;
     calories: number;
@@ -15,11 +18,28 @@ interface RecipeDetailModalProps {
     videoUrl?: string;
   };
   onWatchVideo?: (video: { title: string; videoUrl: string }) => void;
+  isLoggedIn?: boolean;
+  isFavorited?: boolean;
+  onToggleFavorite?: () => void;
 }
 
-export function RecipeDetailModal({ isOpen, onClose, recipe, onWatchVideo }: RecipeDetailModalProps) {
+export function RecipeDetailModal({
+  isOpen,
+  onClose,
+  recipe,
+  onWatchVideo,
+  isLoggedIn = false,
+  isFavorited = false,
+  onToggleFavorite,
+}: RecipeDetailModalProps) {
+  const recipeId = recipe?.id || (recipe as any)?.idMeal;
   const [servings, setServings] = useState(recipe.servings || 4);
   const [userRating, setUserRating] = useState(0);
+  const [averageRating, setAverageRating] = useState<string | null>(null);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(recipe.videoUrl || null);
+  const [favoriteSubmitting, setFavoriteSubmitting] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -31,6 +51,27 @@ export function RecipeDetailModal({ isOpen, onClose, recipe, onWatchVideo }: Rec
       document.body.style.overflow = "unset";
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    setServings(recipe.servings || 4);
+    setUserRating(0);
+    setAverageRating(null);
+    setVideoUrl(recipe.videoUrl || null);
+    setFavoriteSubmitting(false);
+    setFavoriteError(null);
+    if (!isOpen || !recipeId) return;
+    api<{ ratings: any[]; average: string }>(`/api/ratings/${recipeId}`)
+      .then((data) => setAverageRating(data?.average ?? null))
+      .catch(() => setAverageRating(null));
+  }, [isOpen, recipeId, recipe?.servings]);
+
+  useEffect(() => {
+    if (!isOpen || !recipeId) return;
+    type MealDetail = { strYoutube?: string };
+    api<MealDetail>(`/api/recipes/${recipeId}`)
+      .then((d) => setVideoUrl(d?.strYoutube || null))
+      .catch(() => setVideoUrl(null));
+  }, [isOpen, recipeId]);
 
   const ingredients = [
     { name: 'Arborio Rice', amount: 300, unit: 'g' },
@@ -91,14 +132,46 @@ export function RecipeDetailModal({ isOpen, onClose, recipe, onWatchVideo }: Rec
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--black)] via-transparent to-transparent opacity-80" />
 
                 <div className="absolute top-6 right-6 z-20 flex gap-3">
-                  {recipe.videoUrl && (
+                  {recipeId && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async () => {
+                        if (!isLoggedIn) {
+                          setFavoriteError("Please sign in to save recipes.");
+                          return;
+                        }
+                        if (!onToggleFavorite) return;
+                        setFavoriteError(null);
+                        setFavoriteSubmitting(true);
+                        try {
+                          await onToggleFavorite();
+                        } catch (e: any) {
+                          setFavoriteError(e?.message || "Failed to save recipe");
+                        } finally {
+                          setFavoriteSubmitting(false);
+                        }
+                      }}
+                      disabled={!isLoggedIn || favoriteSubmitting}
+                      className={`px-4 py-2 rounded-full flex items-center gap-2 transition-all ${
+                        isFavorited
+                          ? "bg-[rgba(255,107,53,0.2)] text-[var(--orange)] border border-[rgba(255,107,53,0.5)]"
+                          : "bg-[rgba(0,0,0,0.35)] text-white border border-[var(--glass-border)]"
+                      } ${!isLoggedIn || favoriteSubmitting ? "opacity-60 cursor-not-allowed" : ""}`}
+                      style={{ fontWeight: 600 }}
+                    >
+                      <Heart className={`w-4 h-4 ${isFavorited ? "fill-[var(--orange)]" : ""}`} />
+                      {favoriteSubmitting ? "Saving…" : isFavorited ? "Saved" : "Save"}
+                    </motion.button>
+                  )}
+                  {videoUrl && (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         onWatchVideo?.({
                           title: `How to Make ${recipe.title}`,
-                          videoUrl: recipe.videoUrl!
+                          videoUrl: videoUrl
                         });
                       }}
                       className="px-4 py-2 bg-[var(--orange)] text-[var(--black)] rounded-full flex items-center gap-2 hover:shadow-lg hover:shadow-[rgba(255,107,53,0.3)] transition-all"
@@ -120,6 +193,11 @@ export function RecipeDetailModal({ isOpen, onClose, recipe, onWatchVideo }: Rec
                   <h2 className="text-4xl text-[var(--beige)] mb-4" style={{ fontWeight: 700 }}>
                     {recipe.title}
                   </h2>
+                  {favoriteError && (
+                    <div className="text-sm text-[var(--orange)] mb-3">
+                      {favoriteError}
+                    </div>
+                  )}
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2 text-[var(--beige)]">
                       <Flame className="w-5 h-5 text-[var(--orange)]" />
@@ -224,13 +302,33 @@ export function RecipeDetailModal({ isOpen, onClose, recipe, onWatchVideo }: Rec
                   <h3 className="text-xl text-[var(--beige)] mb-4" style={{ fontWeight: 600 }}>
                     Rate this recipe
                   </h3>
+                  <div className="text-sm text-[var(--muted-foreground)] mb-3">
+                    {averageRating ? `Community average: ${averageRating}/5` : recipe?.id ? "Community average: —" : "Community average: —"}
+                    {!isLoggedIn && recipe?.id ? " (sign in to rate)" : ""}
+                  </div>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((rating) => (
                       <motion.button
                         key={rating}
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => setUserRating(rating)}
+                        disabled={!isLoggedIn || !recipeId || ratingSubmitting}
+                        onClick={async () => {
+                          if (!isLoggedIn || !recipeId) return;
+                          setUserRating(rating);
+                          setRatingSubmitting(true);
+                          try {
+                            await api("/api/ratings", {
+                              method: "POST",
+                              auth: true,
+                              body: { recipeId: recipeId, recipeName: recipe.title, rating },
+                            });
+                            const data = await api<{ ratings: any[]; average: string }>(`/api/ratings/${recipeId}`);
+                            setAverageRating(data?.average ?? null);
+                          } finally {
+                            setRatingSubmitting(false);
+                          }
+                        }}
                         className="transition-colors"
                       >
                         <Star

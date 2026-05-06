@@ -1,15 +1,28 @@
 import { motion } from "motion/react";
 import { Search, User, Heart, ChefHat } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function Navigation({ onAuthClick, isLoggedIn, onLogout }: { onAuthClick: () => void; isLoggedIn?: boolean; onLogout?: () => void }) {
+export function Navigation({
+  onAuthClick,
+  isLoggedIn,
+  onLogout,
+  onSearchClick,
+  onFavoritesClick,
+}: {
+  onAuthClick: () => void;
+  isLoggedIn?: boolean;
+  onLogout?: () => void;
+  onSearchClick?: () => void;
+  onFavoritesClick?: () => void;
+}) {
   const [isScrolled, setIsScrolled] = useState(false);
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', () => {
-      setIsScrolled(window.scrollY > 50);
-    });
-  }
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 50);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <motion.nav
@@ -38,6 +51,7 @@ export function Navigation({ onAuthClick, isLoggedIn, onLogout }: { onAuthClick:
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            onClick={onSearchClick}
             className="text-[var(--beige)] hover:text-[var(--orange)] transition-colors"
           >
             <Search className="w-5 h-5" />
@@ -45,6 +59,7 @@ export function Navigation({ onAuthClick, isLoggedIn, onLogout }: { onAuthClick:
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            onClick={onFavoritesClick}
             className="text-[var(--beige)] hover:text-[var(--orange)] transition-colors"
           >
             <Heart className="w-5 h-5" />

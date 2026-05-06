@@ -4,51 +4,27 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../api/http";
 
-const recipes = [
-  {
-    title: "Mediterranean Buddha Bowl",
-    image: "https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 420,
-    time: 25,
-    rating: 4.8
-  },
-  {
-    title: "Spicy Ramen Bowl",
-    image: "https://images.unsplash.com/photo-1623428188495-89c064ee061a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 520,
-    time: 30,
-    rating: 4.9
-  },
-  {
-    title: "Poke Bowl",
-    image: "https://images.unsplash.com/photo-1667499823726-f2c6fc321b66?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 380,
-    time: 20,
-    rating: 4.7
-  },
-  {
-    title: "Green Goddess Salad",
-    image: "https://images.unsplash.com/photo-1547592180-85f173990554?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 290,
-    time: 15,
-    rating: 4.6
-  },
-  {
-    title: "Spaghetti Carbonara",
-    image: "https://images.unsplash.com/photo-1712746784067-e9e1bd86c043?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 650,
-    time: 25,
-    rating: 4.9
-  },
-  {
-    title: "Seafood Pasta",
-    image: "https://images.unsplash.com/photo-1762631178597-847861217da0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 580,
-    time: 35,
-    rating: 4.8
-  }
-];
+type MealSummary = {
+  idMeal: string;
+  strMeal: string;
+  strMealThumb: string;
+};
+
+function toUiRecipe(meal: MealSummary, index: number) {
+  // TheMealDB doesn't provide calories/time/rating; use stable placeholders.
+  const pseudo = (Number(meal.idMeal.slice(-3)) || index + 1) % 100;
+  return {
+    id: meal.idMeal,
+    title: meal.strMeal,
+    image: meal.strMealThumb,
+    calories: 250 + pseudo * 5,
+    time: 15 + (pseudo % 40),
+    rating: Number((4 + (pseudo % 10) / 10).toFixed(1)),
+  };
+}
 
 function NextArrow(props: any) {
   const { onClick } = props;
@@ -78,7 +54,43 @@ function PrevArrow(props: any) {
   );
 }
 
-export function PopularRecipes({ onRecipeClick }: { onRecipeClick?: (recipe: any) => void }) {
+export function PopularRecipes({
+  onRecipeClick,
+  isLoggedIn,
+  favorites,
+  onToggleFavorite,
+}: {
+  onRecipeClick?: (recipe: any) => void;
+  isLoggedIn: boolean;
+  favorites: { _id: string; mealId: string }[];
+  onToggleFavorite: (recipe: { id: string; title: string; image: string }) => Promise<void>;
+}) {
+  const [meals, setMeals] = useState<MealSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    api<MealSummary[]>('/api/recipes')
+      .then((data) => {
+        if (!alive) return;
+        setMeals(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setMeals([]);
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const recipes = useMemo(() => meals.slice(0, 12).map(toUiRecipe), [meals]);
+
   const settings = {
     dots: true,
     infinite: true,
@@ -133,17 +145,32 @@ export function PopularRecipes({ onRecipeClick }: { onRecipeClick?: (recipe: any
         </motion.div>
 
         <div className="pb-16">
-          <Slider {...settings}>
-            {recipes.map((recipe, index) => (
-              <div key={index} className="px-3">
-                <RecipeCard
-                  {...recipe}
-                  delay={index * 0.1}
-                  onClick={() => onRecipeClick?.(recipe)}
-                />
-              </div>
-            ))}
-          </Slider>
+          {loading ? (
+            <div className="text-center text-[var(--muted-foreground)] py-10">
+              Loading recipes…
+            </div>
+          ) : recipes.length === 0 ? (
+            <div className="text-center text-[var(--muted-foreground)] py-10">
+              No recipes found.
+            </div>
+          ) : (
+            <Slider {...settings}>
+              {recipes.map((recipe, index) => (
+                <div key={recipe.id} className="px-3">
+                  <RecipeCard
+                    {...recipe}
+                    delay={index * 0.1}
+                    isFavorited={favorites.some((f) => f.mealId === recipe.id)}
+                    disableFavorite={!isLoggedIn}
+                    onToggleFavorite={() =>
+                      onToggleFavorite({ id: recipe.id, title: recipe.title, image: recipe.image })
+                    }
+                    onClick={() => onRecipeClick?.(recipe)}
+                  />
+                </div>
+              ))}
+            </Slider>
+          )}
         </div>
       </div>
     </div>

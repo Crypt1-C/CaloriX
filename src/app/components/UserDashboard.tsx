@@ -1,81 +1,42 @@
+import React from "react";
 import { motion } from "motion/react";
 import { Heart, Plus, TrendingUp, Award, Sparkles } from "lucide-react";
 import { CircularCarousel } from "./CircularCarousel";
+import { useEffect, useState } from "react";
+import { api } from "../api/http";
 
-const favoriteRecipes = [
-  {
-    title: "Truffle Mushroom Risotto",
-    image: "https://images.unsplash.com/photo-1763867641141-50e00520f189?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 380,
-    time: 35,
-    rating: 4.9
-  },
-  {
-    title: "Grilled Salmon",
-    image: "https://images.unsplash.com/photo-1774921676942-90c6cfe9d541?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 420,
-    time: 25,
-    rating: 4.8
-  },
-  {
-    title: "Fresh Spring Salad",
-    image: "https://images.unsplash.com/photo-1769816042376-e7b16f728013?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 220,
-    time: 15,
-    rating: 4.7
-  },
-  {
-    title: "Mediterranean Bowl",
-    image: "https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 420,
-    time: 25,
-    rating: 4.8
-  },
-  {
-    title: "Spicy Ramen",
-    image: "https://images.unsplash.com/photo-1623428188495-89c064ee061a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 520,
-    time: 30,
-    rating: 4.9
-  }
-];
+export function UserDashboard({
+  favorites,
+  suggestions,
+  onRecipeClick,
+}: {
+  favorites: { id?: string; title: string; image: string; calories: number; time: number; rating: number }[];
+  suggestions: { id?: string; title: string; image: string; calories: number; time: number; rating: number }[];
+  onRecipeClick?: (recipe: any) => void;
+}) {
+  const [quickLoading, setQuickLoading] = useState<string | null>(null);
+  const [suggestPage, setSuggestPage] = useState(1);
+  const suggestPageSize = 4;
 
-const suggestedRecipes = [
-  {
-    title: "Creamy Mushroom Pasta",
-    reason: "Similar to your favorite Truffle Risotto",
-    image: "https://images.unsplash.com/photo-1712746784067-e9e1bd86c043?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 480,
-    time: 25,
-    rating: 4.7
-  },
-  {
-    title: "Herb Crusted Salmon",
-    reason: "Matches your preference for seafood dishes",
-    image: "https://images.unsplash.com/photo-1632778129004-f142ce499b3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 390,
-    time: 30,
-    rating: 4.9
-  },
-  {
-    title: "Rainbow Buddha Bowl",
-    reason: "Based on your love for healthy salads",
-    image: "https://images.unsplash.com/photo-1547592180-85f173990554?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 350,
-    time: 20,
-    rating: 4.6
-  },
-  {
-    title: "Truffle Mac & Cheese",
-    reason: "Combines your favorite truffle flavor",
-    image: "https://images.unsplash.com/photo-1712746784296-e62c1cc7b1f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    calories: 620,
-    time: 35,
-    rating: 4.8
-  }
-];
+  useEffect(() => {
+    setSuggestPage(1);
+  }, [suggestions.length]);
 
-export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any) => void }) {
+  type MealSummary = { idMeal: string; strMeal: string; strMealThumb: string };
+
+  const toUiRecipe = (meal: MealSummary, index: number) => {
+    const pseudo = (Number(meal.idMeal.slice(-3)) || index + 1) % 100;
+    return {
+      id: meal.idMeal,
+      title: meal.strMeal,
+      image: meal.strMealThumb,
+      calories: 250 + pseudo * 5,
+      time: 15 + (pseudo % 40),
+      rating: Number((4 + (pseudo % 10) / 10).toFixed(1)),
+      servings: 2 + (pseudo % 4),
+    };
+  };
+
   return (
     <div id="user-dashboard" className="py-20 px-6">
       <div className="max-w-7xl mx-auto">
@@ -120,7 +81,7 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
                 </div>
                 <div>
                   <div className="text-3xl text-[var(--beige)]" style={{ fontWeight: 700 }}>
-                    47
+                    {favorites.length}
                   </div>
                   <div className="text-[var(--muted-foreground)]">Saved Recipes</div>
                 </div>
@@ -141,7 +102,7 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
                 </div>
                 <div>
                   <div className="text-3xl text-[var(--beige)]" style={{ fontWeight: 700 }}>
-                    12
+                    {Math.min(12, favorites.length)}
                   </div>
                   <div className="text-[var(--muted-foreground)]">Recipes Shared</div>
                 </div>
@@ -175,7 +136,13 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
           <h3 className="text-3xl text-[var(--beige)] mb-8 text-center" style={{ fontWeight: 700 }}>
             Your Favorite Recipes
           </h3>
-          <CircularCarousel recipes={favoriteRecipes} onRecipeClick={onRecipeClick} />
+          {favorites.length === 0 ? (
+            <div className="text-center text-[var(--muted-foreground)] py-6">
+              No favorites yet. Tap the heart on any recipe.
+            </div>
+          ) : (
+            <CircularCarousel recipes={favorites} onRecipeClick={onRecipeClick} />
+          )}
         </div>
 
         <motion.div
@@ -198,8 +165,16 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {suggestedRecipes.map((recipe, index) => (
+          {(() => {
+            const totalPages = Math.max(1, Math.ceil(suggestions.length / suggestPageSize));
+            const page = Math.min(suggestPage, totalPages);
+            const start = (page - 1) * suggestPageSize;
+            const pageItems = suggestions.slice(start, start + suggestPageSize);
+
+            return (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {pageItems.map((recipe, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
@@ -236,9 +211,6 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
                           <span className="text-[var(--beige)]">{recipe.rating}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-[var(--muted-foreground)] mb-3 italic">
-                        {recipe.reason}
-                      </p>
                       <div className="flex items-center gap-4 text-sm text-[var(--muted-foreground)]">
                         <span>{recipe.calories} cal</span>
                         <span>•</span>
@@ -248,8 +220,37 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </div>
+                  ))}
+                </div>
+
+                {suggestions.length > suggestPageSize && (
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <button
+                      onClick={() => setSuggestPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1}
+                      className={`px-5 py-2 rounded-full border border-[var(--glass-border)] text-[var(--beige)] transition-all ${
+                        page <= 1 ? "opacity-50 cursor-not-allowed" : "hover:border-[var(--orange)]"
+                      }`}
+                    >
+                      Prev
+                    </button>
+                    <div className="text-sm text-[var(--muted-foreground)]">
+                      Page {page} / {totalPages}
+                    </div>
+                    <button
+                      onClick={() => setSuggestPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page >= totalPages}
+                      className={`px-5 py-2 rounded-full border border-[var(--glass-border)] text-[var(--beige)] transition-all ${
+                        page >= totalPages ? "opacity-50 cursor-not-allowed" : "hover:border-[var(--orange)]"
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </motion.div>
 
         <motion.div
@@ -262,10 +263,12 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
             Quick Recipes with Your Ingredients
           </h3>
           <p className="text-[var(--muted-foreground)] mb-6">
-            Based on your pantry: Chicken, Tomatoes, Garlic, Pasta, Olive Oil
+            Based on your saved recipes
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {['Chicken Marinara', 'Garlic Pasta Aglio', 'Tomato Basil Chicken', 'Mediterranean Pasta'].map((suggestion, index) => (
+            {(favorites.length > 0
+              ? favorites.slice(0, 4).map((f) => f.title)
+              : []).map((suggestion, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
@@ -273,13 +276,31 @@ export function UserDashboard({ onRecipeClick }: { onRecipeClick?: (recipe: any)
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ x: 4 }}
+                onClick={async () => {
+                  if (!onRecipeClick) return;
+                  setQuickLoading(suggestion);
+                  try {
+                    const meals = await api<MealSummary[]>(`/api/recipes/search?s=${encodeURIComponent(suggestion)}`);
+                    const first = Array.isArray(meals) ? meals[0] : null;
+                    if (!first) return;
+                    onRecipeClick(toUiRecipe(first, 0));
+                  } finally {
+                    setQuickLoading(null);
+                  }
+                }}
                 className="flex items-center justify-between p-4 bg-[rgba(26,58,46,0.3)] border border-[var(--glass-border)] rounded-xl cursor-pointer hover:border-[var(--orange)] transition-colors"
               >
                 <span className="text-[var(--beige)]">{suggestion}</span>
-                <span className="text-[var(--orange)]">→</span>
+                <span className="text-[var(--orange)]">{quickLoading === suggestion ? "…" : "→"}</span>
               </motion.div>
             ))}
           </div>
+
+          {favorites.length === 0 && (
+            <div className="text-sm text-[var(--muted-foreground)]">
+              Save some recipes to get quick suggestions here.
+            </div>
+          )}
         </motion.div>
       </div>
     </div>
