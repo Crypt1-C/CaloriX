@@ -4,10 +4,15 @@ const Ingredient = require('../models/Ingredient');
 const addIngredient = async (req, res) => {
   const { name, calories, protein, carbs, fat } = req.body;
   try {
+    const trimmedName = (name || '').toString().trim();
+    if (!trimmedName) {
+      return res.status(400).json({ message: 'Ingredient name is required' });
+    }
+
     const ingredient = new Ingredient({
       user: req.user.id,
-      name,
-      calories,
+      name: trimmedName,
+      calories: typeof calories === 'number' ? calories : Number(calories) || 0,
       protein,
       carbs,
       fat,
@@ -15,6 +20,10 @@ const addIngredient = async (req, res) => {
     await ingredient.save();
     res.status(201).json({ message: 'Ingredient saved', ingredient });
   } catch (error) {
+    // Surface validation errors as 400 (helps frontend UX)
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
